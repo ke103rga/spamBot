@@ -6,12 +6,13 @@ from selenium.webdriver.chrome.options import Options
 from auth_data import auth_data
 import time
 from selenium.webdriver.chrome.service import Service as ChromeService
+
 # from webdriver_manager.chrome import ChromeDriverManager
 
 
 options = Options()
 options.add_argument("start-maximized")
-driver = webdriver.Chrome(executable_path="C:\\Users\\Анастасия\\PycharmProjects\\spamBot\\driver\\chromedriver.exe", chrome_options=options)
+driver = webdriver.Chrome(executable_path="driver\\chromedriver.exe", chrome_options=options)
 
 vk_url = "https://vk.com/"
 
@@ -92,7 +93,12 @@ def get_followers_lst(driver):
     while True:
         page_end = driver.find_element(By.ID, "fans_more_linkmembers")
         actions = ActionChains(driver)
-        actions.move_to_element(page_end).perform()
+        try:
+            actions.move_to_element(page_end).perform()
+        except Exception:
+            actions.move_to_element(last_follower).perform()
+            followers = driver.find_element(By.CLASS_NAME, "fans_rows")
+            break
         time.sleep(7)
         # groups = driver.find_element(By.ID, "groups_list_groups")
         followers = driver.find_element(By.CLASS_NAME, "fans_rows")
@@ -105,13 +111,29 @@ def get_followers_lst(driver):
 
 
 def parse_groups(groups, driver):
-    for group in groups:
-        group_info = group.find_element(By.CLASS_NAME, "group_row_info")
-        group_link = group_info.find_element(By.TAG_NAME, "a")
-        driver.execute_script("arguments[0].click();", group_link)
-        time.sleep(7)
-        followers = get_followers_lst(auth_driver)
-        break
+    for index, group in enumerate(groups):
+        if index in [137]:
+            group_info = group.find_element(By.CLASS_NAME, "group_row_info")
+            group_link = group_info.find_element(By.TAG_NAME, "a")
+            driver.execute_script("arguments[0].click();", group_link)
+            time.sleep(7)
+            followers = get_followers_lst(auth_driver)
+            for follower in followers:
+                follower_link = follower.find_element(By.CLASS_NAME, "fans_fan_name"). \
+                    find_element(By.TAG_NAME, "a")
+                driver.execute_script("arguments[0].click();", follower_link)
+                time.sleep(3)
+                driver.back()
+                try:
+                    followers_link = driver.find_element(By.ID, "public_followers"). \
+                        find_element(By.TAG_NAME, "a")
+                    driver.execute_script("arguments[0].click();", followers_link)
+                except Exception:
+                    followers_link = driver.find_element(By.ID, "group_followers"). \
+                        find_element(By.TAG_NAME, "a")
+                    driver.execute_script("arguments[0].click();", followers_link)
+            print(len(followers))
+            driver.back()
 
 
 if __name__ == "__main__":
