@@ -1,3 +1,5 @@
+from selenium.webdriver import Keys
+
 from group_parser import authorization, get_group_lst
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -7,44 +9,42 @@ import time
 
 options = Options()
 options.add_argument("start-maximized")
-driver = webdriver.Chrome(executable_path="C:\\Users\\Анастасия\\PycharmProjects\\spamBot\\driver\\chromedriver.exe", chrome_options=options)
+driver = webdriver.Chrome(executable_path="driver\\chromedriver.exe", chrome_options=options)
 auth_driver = authorization(driver=driver)
 
-groups = get_group_lst(auth_driver)
-first_group = groups[136]
+# groups = get_group_lst(auth_driver)
+# first_group = groups[136]
 
+groups_link = auth_driver.find_element(By.ID, "l_gr").find_element(By.TAG_NAME, "a")
+groups_link.click()
+time.sleep(7)
+groups = auth_driver.find_element(By.CLASS_NAME, "groups_list")
+first_group = groups.find_elements(By.CLASS_NAME, "group_list_row")[8]
+
+action = ActionChains(auth_driver)
 group_info = first_group.find_element(By.CLASS_NAME, "group_row_info")
 group_link = group_info.find_element(By.TAG_NAME, "a")
-driver.execute_script("arguments[0].click();", group_link)
+auth_driver.execute_script("arguments[0].click();", group_link)
 time.sleep(7)
 
 try:
     followers_link = auth_driver.find_element(By.ID, "public_followers"). \
         find_element(By.TAG_NAME, "a")
-    auth_driver.execute_script("arguments[0].click();", followers_link)
+    action.key_down(Keys.CONTROL).click(followers_link).key_up(Keys.CONTROL).perform()
 except Exception:
     followers_link = auth_driver.find_element(By.ID, "group_followers"). \
         find_element(By.TAG_NAME, "a")
-    auth_driver.execute_script("arguments[0].click();", followers_link)
+    action.key_down(Keys.CONTROL).click(followers_link).key_up(Keys.CONTROL).perform()
 
+auth_driver.switch_to.window(driver.window_handles[1])
 time.sleep(3)
 
-followers = driver.find_element(By.CLASS_NAME, "fans_rows")
-last_follower = followers.find_elements(By.CLASS_NAME, "fans_fan_row")[-1]
+auth_driver.close()
+time.sleep(3)
+auth_driver.switch_to.window(auth_driver.window_handles[0])
+time.sleep(3)
+auth_driver.back()
+time.sleep(3)
 
-while True:
-    page_end = driver.find_element(By.ID, "fans_more_linkmembers")
-    actions = ActionChains(driver)
-    actions.move_to_element(page_end).perform()
-    time.sleep(7)
-    # groups = driver.find_element(By.ID, "groups_list_groups")
-    followers = driver.find_element(By.CLASS_NAME, "fans_rows")
-    if followers.find_elements(By.CLASS_NAME, "fans_fan_row")[-1] == last_follower:
-        break
-    else:
-        last_follower = followers.find_elements(By.CLASS_NAME, "fans_fan_row")[-1]
-
-print(len(followers.find_elements(By.CLASS_NAME, "fans_fan_row")))
-
-driver.quit()
-driver.close()
+auth_driver.close()
+auth_driver.quit()

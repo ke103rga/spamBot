@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 from auth_data import auth_data
 import time
@@ -33,6 +34,14 @@ def authorization(url=vk_url, driver=driver, auth_data=auth_data):
     return driver
 
 
+def check_by_id(driver, id):
+    try:
+        driver.find_element(By.ID, id)
+    except NoSuchElementException:
+        return False
+    return True
+
+
 def get_whole_page(group_class_name, last_elem_classs_name):
     groups = driver.find_element(By.CLASS_NAME, group_class_name)
     last_group = groups.find_elements(By.CLASS_NAME, last_elem_classs_name)[-1]
@@ -57,83 +66,69 @@ def get_group_lst(driver):
     time.sleep(7)
     return get_whole_page("groups_list", "group_list_row")
 
-    # groups = driver.find_element(By.CLASS_NAME, "groups_list")
-    # last_group = groups.find_elements(By.CLASS_NAME, "group_list_row")[-1]
-    #
-    # while True:
-    #     actions = ActionChains(driver)
-    #     actions.move_to_element(last_group).perform()
-    #     time.sleep(7)
-    #     # groups = driver.find_element(By.ID, "groups_list_groups")
-    #     groups = driver.find_element(By.CLASS_NAME, "groups_list")
-    #     if groups.find_elements(By.CLASS_NAME, "group_list_row")[-1] == last_group:
-    #         break
-    #     else:
-    #         last_group = groups.find_elements(By.CLASS_NAME, "group_list_row")[-1]
-    #
-    # return groups.find_elements(By.CLASS_NAME, "group_list_row")
 
-
-def get_followers_lst(driver):
+def get_followers_lst(driver, actions, count):
     try:
         followers_link = driver.find_element(By.ID, "public_followers"). \
             find_element(By.TAG_NAME, "a")
-        driver.execute_script("arguments[0].click();", followers_link)
+        actions.key_down(Keys.CONTROL).click(followers_link).key_up(Keys.CONTROL).perform()
     except Exception:
-        followers_link = driver.find_element(By.ID, "group_followers"). \
-            find_element(By.TAG_NAME, "a")
-        driver.execute_script("arguments[0].click();", followers_link)
-
-    time.sleep(7)
-    # return get_whole_page("fans_rows", "fans_fan_row")
-
-    followers = driver.find_element(By.CLASS_NAME, "fans_rows")
-    last_follower = followers.find_elements(By.CLASS_NAME, "fans_fan_row")[-1]
-
-    while True:
-        page_end = driver.find_element(By.ID, "fans_more_linkmembers")
-        actions = ActionChains(driver)
         try:
-            actions.move_to_element(page_end).perform()
-        except Exception:
-            actions.move_to_element(last_follower).perform()
-            followers = driver.find_element(By.CLASS_NAME, "fans_rows")
-            break
-        time.sleep(7)
-        # groups = driver.find_element(By.ID, "groups_list_groups")
-        followers = driver.find_element(By.CLASS_NAME, "fans_rows")
-        if followers.find_elements(By.CLASS_NAME, "fans_fan_row")[-1] == last_follower:
-            break
-        else:
-            last_follower = followers.find_elements(By.CLASS_NAME, "fans_fan_row")[-1]
+            followers_link = driver.find_element(By.ID, "group_followers"). \
+                find_element(By.TAG_NAME, "a")
+            actions.key_down(Keys.CONTROL).click(followers_link).key_up(Keys.CONTROL).perform()
+        except NoSuchElementException:
+            print("The public is closed")
+    driver.switch_to.window(driver.window_handles[count])
 
-    return followers.find_elements(By.CLASS_NAME, "fans_fan_row")
+    time.sleep(3)
+    followers = auth_driver.find_element(By.CLASS_NAME, "search_results")
+    print(len(followers.find_elements(By.CLASS_NAME, "people_row")))
+    last_follower = followers.find_elements(By.CLASS_NAME, "people_row")[-1]
+
+    if check_by_id(driver, "ui_search_load_more"):
+        print("more than 40")
+        while True:
+            page_end = followers.find_element(By.ID, "ui_search_load_more")
+            actions = ActionChains(auth_driver)
+            if page_end:
+                actions.move_to_element(page_end).perform()
+            else:
+                break
+            time.sleep(7)
+            followers = driver.find_element(By.CLASS_NAME, "search_results")
+            if followers.find_elements(By.CLASS_NAME, "people_row")[-1] == last_follower:
+                break
+            else:
+                last_follower = followers.find_elements(By.CLASS_NAME, "people_row")[-1]
+        followers = followers.find_elements(By.CLASS_NAME, "people_row")
+    else:
+        print("less than 40")
+        followers = get_whole_page("search_results", "people_row")
+
+    driver.switch_to.window(auth_driver.window_handles[0])
+    driver.back()
+    time.sleep(3)
+
+    return followers
 
 
 def parse_groups(groups, driver):
+    count = 1
     for index, group in enumerate(groups):
-        if index in [137]:
+        actions = ActionChains(driver)
+        if index in [4, 5]:
+
             group_info = group.find_element(By.CLASS_NAME, "group_row_info")
             group_link = group_info.find_element(By.TAG_NAME, "a")
+            # print(group_link)
             driver.execute_script("arguments[0].click();", group_link)
             time.sleep(7)
-            followers = get_followers_lst(auth_driver)
-            for follower in followers:
-                follower_link = follower.find_element(By.CLASS_NAME, "fans_fan_name"). \
-                    find_element(By.TAG_NAME, "a")
-                driver.execute_script("arguments[0].click();", follower_link)
-                time.sleep(3)
-                driver.back()
-                try:
-                    followers_link = driver.find_element(By.ID, "public_followers"). \
-                        find_element(By.TAG_NAME, "a")
-                    driver.execute_script("arguments[0].click();", followers_link)
-                except Exception:
-                    followers_link = driver.find_element(By.ID, "group_followers"). \
-                        find_element(By.TAG_NAME, "a")
-                    driver.execute_script("arguments[0].click();", followers_link)
-            print(len(followers))
-            driver.back()
+
+            followers = get_followers_lst(driver, actions, count)
+            time.sleep(7)
+            # print(len(followers))
+            count += 1
 
 
 if __name__ == "__main__":
