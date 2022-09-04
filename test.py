@@ -20,7 +20,9 @@ groups_link = auth_driver.find_element(By.ID, "l_gr").find_element(By.TAG_NAME, 
 groups_link.click()
 time.sleep(7)
 groups = auth_driver.find_element(By.CLASS_NAME, "groups_list")
-first_group = groups.find_elements(By.CLASS_NAME, "group_list_row")[1]
+first_group = groups.find_elements(By.CLASS_NAME, "group_list_row")[2]
+
+group_data = {"name": "", "link": ""}
 
 action = ActionChains(auth_driver)
 group_info = first_group.find_element(By.CLASS_NAME, "group_row_info")
@@ -40,7 +42,12 @@ time.sleep(7)
 followers = get_followers_lst(auth_driver, action)
 for follower in followers:
     time.sleep(3)
-    send_message(auth_driver, follower, messages["group_A_message"])
+    follower_info = follower.find_element(By.CLASS_NAME, "labeled")
+
+    user_data = {"name": follower_info.text,
+                 "link": follower_info.find_element(By.TAG_NAME, "a").get_attribute("href")}
+    print(user_data)
+    # send_message(auth_driver, follower, messages["group_A_message"])
 
 
 auth_driver.close()

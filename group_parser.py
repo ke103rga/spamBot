@@ -126,6 +126,7 @@ def get_followers_lst(driver, actions):
 def parse_groups(groups, driver):
     for index, group in enumerate(groups):
         actions = ActionChains(driver)
+
         if index in [3, 5, 139]:
 
             try:
@@ -134,6 +135,8 @@ def parse_groups(groups, driver):
                 # print(group_link)
                 driver.execute_script("arguments[0].click();", group_link)
                 time.sleep(7)
+
+
 
                 followers = get_followers_lst(driver, actions)
                 for follower in followers:
